@@ -19,7 +19,24 @@ import java.awt.event.MouseEvent
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 import javax.swing.SwingUtilities
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.math.roundToInt
+
+@ExperimentalContracts
+private fun isEscapeKey(event: AWTEvent): Boolean {
+  contract { returns(true) implies (event is KeyEvent) }
+  return event is KeyEvent &&
+         event.keyCode == KeyEvent.VK_ESCAPE
+}
+
+@ExperimentalContracts
+private fun isToggleMouseButton(event: AWTEvent): Boolean {
+  contract { returns(true) implies (event is MouseEvent) }
+  return event is MouseEvent &&
+         event.button == MouseEvent.BUTTON2 &&
+         !(event.isControlDown || event.isShiftDown || event.isMetaDown)
+}
 
 class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
   companion object {
@@ -32,52 +49,50 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     IdeEventQueue.getInstance().addDispatcher(this, ApplicationManager.getApplication())
   }
 
+  @ExperimentalContracts
   override fun dispatch(event: AWTEvent): Boolean {
-    if (event is KeyEvent && event.keyCode == KeyEvent.VK_ESCAPE && event.id == KeyEvent.KEY_PRESSED) {
-      if (handler != null) {
-        Disposer.dispose(handler!!)
-        handler = null
-        return true
-      }
+    if (isEscapeKey(event) && event.id == KeyEvent.KEY_PRESSED) {
+      return disposeHandler()
     }
 
-    if (event is MouseEvent && event.button == MouseEvent.BUTTON2 &&
-        !(event.isControlDown || event.isShiftDown || event.isMetaDown)) {
+    if (isToggleMouseButton(event)) {
       val component = SwingUtilities.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
       val editor = DataManager.getInstance().getDataContext(component).getData(CommonDataKeys.EDITOR) as? EditorEx
       val scrollPane = UIUtil.getParentOfType(JScrollPane::class.java, component)
 
-      if (handler != null || editor != null || scrollPane != null) {
-        if (event.id == MouseEvent.MOUSE_PRESSED) {
-          if (handler != null) {
-            Disposer.dispose(handler!!)
-            handler = null
-            return true
-          }
-          else {
-            if (editor != null) {
-              handler = EditorHandler(editor, event)
-              handler!!.start()
-              return true
-            }
+      if (handler == null && editor == null && scrollPane == null) return false
 
-            if (scrollPane != null) {
-              handler = ScrollPaneHandler(scrollPane, event)
-              handler!!.start()
-            }
-          }
+      if (event.id == MouseEvent.MOUSE_PRESSED) {
+        if (disposeHandler()) {
+          return true
         }
-        return true
+
+        if (editor != null) {
+          handler = EditorHandler(editor, event).start()
+          return true
+        }
+
+        if (scrollPane != null) {
+          handler = ScrollPaneHandler(scrollPane, event).start()
+          return true
+        }
       }
+      return true // suppress shortcuts
     }
 
-    if (event is MouseEvent && event.id == MouseEvent.MOUSE_MOVED) {
-      if (handler != null) {
-        handler!!.mouseMoved(event)
-      }
+    if (event is MouseEvent && (event.id == MouseEvent.MOUSE_MOVED || event.id == MouseEvent.MOUSE_DRAGGED)) {
+      handler?.mouseMoved(event)
+      return false
     }
 
     return false
+  }
+
+  private fun disposeHandler(): Boolean {
+    if (handler == null) return false
+    Disposer.dispose(handler!!)
+    handler = null
+    return true
   }
 
   private inner class EditorHandler(val editor: EditorEx, startEvent: MouseEvent)
@@ -117,9 +132,10 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     private var lastEventTimestamp: Long = Long.MAX_VALUE
     private var lastEventRemainder: Double = 0.0
 
-    fun start() {
+    fun start(): Handler {
       setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
       scheduleScrollEvent()
+      return this
     }
 
     override fun dispose() {
