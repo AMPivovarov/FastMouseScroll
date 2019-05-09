@@ -1,0 +1,17 @@
+<idea-plugin>
+    <id>com.jetbrains.fast.mouse.scroll</id>
+    <name>Fast Mouse Scrolling</name>
+    <vendor email="AMPivovarov@gmail.com">Aleksey Pivovarov</vendor>
+
+    <description><![CDATA[
+    Supports browser-like middle-click scrolling in IDE.
+    ]]></description>
+
+    <depends>com.intellij.modules.lang</depends>
+
+    <application-components>
+        <component>
+            <implementation-class>com.jetbrains.fastmousescroll.FastMouseScrollComponent</implementation-class>
+        </component>
+    </application-components>
+</idea-plugin>

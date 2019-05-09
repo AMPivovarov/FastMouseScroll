@@ -1,0 +1,9 @@
+/build/
+.gradle
+/gradle/
+gradlew*
+
+.idea/**
+!.idea/vcs.xml
+!.idea/codeStyles
+!.idea/codeStyles/**
