@@ -77,6 +77,10 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
           return true
         }
       }
+      if (event.id == MouseEvent.MOUSE_RELEASED) {
+        disposeHandler(300)
+        return true
+      }
       return true // suppress shortcuts
     }
 
@@ -88,8 +92,9 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     return false
   }
 
-  private fun disposeHandler(): Boolean {
+  private fun disposeHandler(minDelay: Int = 0): Boolean {
     if (handler == null) return false
+    if (System.currentTimeMillis() - handler!!.startTimestamp < minDelay) return false
     Disposer.dispose(handler!!)
     handler = null
     return true
@@ -125,6 +130,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
   private abstract inner class Handler(val component: JComponent, startEvent: MouseEvent) : Disposable {
     private val calcSpeed: ScrollSpeedAlg = GeckoScrollSpeedAlg
 
+    val startTimestamp: Long = System.currentTimeMillis()
     private val startPoint: Point = RelativePoint(startEvent).getPoint(component)
     private val alarm = Alarm()
 
