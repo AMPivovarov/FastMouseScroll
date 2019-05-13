@@ -163,8 +163,8 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
       }
 
       val cursor = when {
-        currentSpeed > 0 -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
-        currentSpeed < 0 -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
+        currentSpeed > 0 -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
+        currentSpeed < 0 -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
         else -> Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
       }
       setCursor(cursor)
