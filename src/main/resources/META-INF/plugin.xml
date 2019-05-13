@@ -9,6 +9,8 @@
 
     <depends>com.intellij.modules.lang</depends>
 
+    <idea-version since-build="191.4212.41"/>
+
     <application-components>
         <component>
             <implementation-class>com.jetbrains.fastmousescroll.FastMouseScrollComponent</implementation-class>
