@@ -51,10 +51,6 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
 
   @ExperimentalContracts
   override fun dispatch(event: AWTEvent): Boolean {
-    if (isEscapeKey(event) && event.id == KeyEvent.KEY_PRESSED) {
-      return disposeHandler()
-    }
-
     if (isToggleMouseButton(event)) {
       val component = SwingUtilities.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
       val editor = DataManager.getInstance().getDataContext(component).getData(CommonDataKeys.EDITOR) as? EditorEx
@@ -82,6 +78,14 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
         return true
       }
       return true // suppress shortcuts
+    }
+
+    if (isEscapeKey(event) && event.id == KeyEvent.KEY_PRESSED) {
+      return disposeHandler()
+    }
+
+    if (event is MouseEvent && event.id == MouseEvent.MOUSE_PRESSED) {
+      return disposeHandler()
     }
 
     if (event is MouseEvent && (event.id == MouseEvent.MOUSE_MOVED || event.id == MouseEvent.MOUSE_DRAGGED)) {
