@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.jetbrains.fast.mouse.scroll</id>
     <name>Fast Mouse Scrolling</name>
-    <vendor email="AMPivovarov@gmail.com">Aleksey Pivovarov</vendor>
+    <vendor email="Aleksey.Pivovarov@jetbrains.com" url="https://www.jetbrains.com/">JetBrains</vendor>
 
     <description><![CDATA[
     Supports browser-like middle-click scrolling in IDE.
