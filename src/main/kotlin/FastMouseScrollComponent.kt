@@ -51,6 +51,11 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
 
   @ExperimentalContracts
   override fun dispatch(event: AWTEvent): Boolean {
+    val mode = FMSSettings.instance.scrollMode
+    if (mode == ScrollMode.NONE) {
+      return false
+    }
+
     if (isToggleMouseButton(event)) {
       val component = SwingUtilities.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
       val editor = DataManager.getInstance().getDataContext(component).getData(CommonDataKeys.EDITOR) as? EditorEx
@@ -64,12 +69,12 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
         }
 
         if (editor != null) {
-          handler = EditorHandler(editor, event).start()
+          handler = EditorHandler(editor, event, mode).start()
           return true
         }
 
         if (scrollPane != null) {
-          handler = ScrollPaneHandler(scrollPane, event).start()
+          handler = ScrollPaneHandler(scrollPane, event, mode).start()
           return true
         }
       }
@@ -104,12 +109,13 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     return true
   }
 
-  private inner class EditorHandler(val editor: EditorEx, startEvent: MouseEvent)
-    : Handler(editor.component, startEvent) {
+  private inner class EditorHandler(val editor: EditorEx, startEvent: MouseEvent, mode: ScrollMode)
+    : Handler(editor.component, startEvent, mode) {
 
-    override fun scrollComponent(delta: Int) {
+    override fun scrollComponent(deltaX: Int, deltaY: Int) {
       editor.scrollingModel.disableAnimation()
-      editor.scrollingModel.scrollVertically(editor.scrollingModel.verticalScrollOffset + delta)
+      editor.scrollingModel.scroll(editor.scrollingModel.horizontalScrollOffset + deltaX,
+                                   editor.scrollingModel.verticalScrollOffset + deltaY)
       editor.scrollingModel.enableAnimation()
     }
 
@@ -118,11 +124,15 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
   }
 
-  private inner class ScrollPaneHandler(val scrollPane: JScrollPane, startEvent: MouseEvent)
-    : Handler(scrollPane, startEvent) {
+  private inner class ScrollPaneHandler(val scrollPane: JScrollPane, startEvent: MouseEvent, mode: ScrollMode)
+    : Handler(scrollPane, startEvent, mode) {
 
-    override fun scrollComponent(delta: Int) {
-      scrollPane.verticalScrollBar.value = scrollPane.verticalScrollBar.value + delta
+    override fun scrollComponent(deltaX: Int, deltaY: Int) {
+      val hBar = scrollPane.horizontalScrollBar
+      val vBar = scrollPane.verticalScrollBar
+
+      if (hBar.isVisible) hBar.value = hBar.value + deltaX
+      if (vBar.isVisible) vBar.value = vBar.value + deltaY
     }
 
     @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
@@ -131,16 +141,16 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
   }
 
-  private abstract inner class Handler(val component: JComponent, startEvent: MouseEvent) : Disposable {
-    private val calcSpeed: ScrollSpeedAlg = GeckoScrollSpeedAlg
+  private abstract inner class Handler(val component: JComponent, startEvent: MouseEvent, val mode: ScrollMode) : Disposable {
+    private val scrollSpeedAlg: ScrollSpeedAlg = GeckoScrollSpeedAlg
 
     val startTimestamp: Long = System.currentTimeMillis()
     private val startPoint: Point = RelativePoint(startEvent).getPoint(component)
     private val alarm = Alarm()
 
-    private var currentSpeed: Double = 0.0 // pixels to scroll per second
+    private var deltaX: DeltaState = DeltaState()
+    private var deltaY: DeltaState = DeltaState()
     private var lastEventTimestamp: Long = Long.MAX_VALUE
-    private var lastEventRemainder: Double = 0.0
 
     fun start(): Handler {
       setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
@@ -155,36 +165,34 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
 
     fun mouseMoved(event: MouseEvent) {
       val currentPoint = RelativePoint(event).getPoint(component)
-      currentSpeed = calcSpeed(currentPoint.y - startPoint.y)
 
-      if (currentSpeed != 0.0 && lastEventTimestamp == Long.MAX_VALUE) {
-        lastEventTimestamp = System.currentTimeMillis()
-        lastEventRemainder = 0.0
-      }
-      if (currentSpeed == 0.0) {
-        lastEventTimestamp = Long.MAX_VALUE
-        lastEventRemainder = 0.0
+      deltaX.currentSpeed = calcSpeed(currentPoint.x - startPoint.x, mode.horizontal)
+      deltaY.currentSpeed = calcSpeed(currentPoint.y - startPoint.y, mode.vertical)
+
+      val isActive = deltaX.isActive || deltaY.isActive
+      val wasActive = lastEventTimestamp != Long.MAX_VALUE
+      if (isActive != wasActive) {
+        lastEventTimestamp = when {
+          isActive -> System.currentTimeMillis()
+          else -> Long.MAX_VALUE
+        }
+
+        deltaX.lastEventRemainder = 0.0
+        deltaY.lastEventRemainder = 0.0
       }
 
-      val cursor = when {
-        currentSpeed > 0 -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
-        currentSpeed < 0 -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
-        else -> Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
-      }
-      setCursor(cursor)
+      setCursor(getCursor(deltaX.currentSpeed, deltaY.currentSpeed))
     }
 
     private fun doScroll() {
-      if (currentSpeed != 0.0) {
+      if (deltaX.isActive || deltaY.isActive) {
         val timestamp = System.currentTimeMillis()
         val timeDelta = (timestamp - lastEventTimestamp).coerceAtLeast(0)
-        val pixels = lastEventRemainder + currentSpeed * timeDelta / 1000
-        val delta = pixels.roundToInt()
-
         lastEventTimestamp = timestamp
-        lastEventRemainder = pixels - delta
 
-        scrollComponent(delta)
+        val stepX = deltaX.step(timeDelta)
+        val stepY = deltaY.step(timeDelta)
+        scrollComponent(stepX, stepY)
       }
 
       scheduleScrollEvent()
@@ -194,9 +202,41 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
       alarm.addRequest(this@Handler::doScroll, DELAY_MS)
     }
 
-    protected abstract fun scrollComponent(delta: Int)
+    private fun calcSpeed(delta: Int, isEnabled: Boolean): Double {
+      if (!isEnabled) return 0.0
+      return scrollSpeedAlg(delta)
+    }
+
+    protected abstract fun scrollComponent(deltaX: Int, deltaY: Int)
     protected abstract fun setCursor(cursor: Cursor?)
   }
+}
+
+private class DeltaState {
+  var currentSpeed: Double = 0.0 // pixels to scroll per second
+  var lastEventRemainder: Double = 0.0
+
+  val isActive get() = currentSpeed != 0.0
+
+  fun step(timeDelta: Long): Int {
+    val pixels = lastEventRemainder + currentSpeed * timeDelta / 1000
+    val delta = pixels.roundToInt()
+
+    lastEventRemainder = pixels - delta
+    return delta
+  }
+}
+
+private fun getCursor(speedX: Double, speedY: Double): Cursor = when {
+  speedX == 0.0 && speedY > 0 -> Cursor.getPredefinedCursor(Cursor.S_RESIZE_CURSOR)
+  speedX == 0.0 && speedY < 0 -> Cursor.getPredefinedCursor(Cursor.N_RESIZE_CURSOR)
+  speedY == 0.0 && speedX > 0 -> Cursor.getPredefinedCursor(Cursor.E_RESIZE_CURSOR)
+  speedY == 0.0 && speedX < 0 -> Cursor.getPredefinedCursor(Cursor.W_RESIZE_CURSOR)
+  speedX > 0 && speedY > 0 -> Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR)
+  speedX > 0 && speedY < 0 -> Cursor.getPredefinedCursor(Cursor.NE_RESIZE_CURSOR)
+  speedX < 0 && speedY > 0 -> Cursor.getPredefinedCursor(Cursor.SW_RESIZE_CURSOR)
+  speedX < 0 && speedY < 0 -> Cursor.getPredefinedCursor(Cursor.NW_RESIZE_CURSOR)
+  else -> Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
 }
 
 /**
