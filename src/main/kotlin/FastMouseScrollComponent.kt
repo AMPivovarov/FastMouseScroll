@@ -11,6 +11,8 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.update.Activatable
+import com.intellij.util.ui.update.UiNotifyConnector
 import java.awt.AWTEvent
 import java.awt.Cursor
 import java.awt.Point
@@ -68,15 +70,15 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
           return true
         }
 
-        if (editor != null) {
-          handler = EditorHandler(editor, event, mode).start()
-          return true
+        val newHandler = when {
+          editor != null -> EditorHandler(editor, event, mode)
+          scrollPane != null -> ScrollPaneHandler(scrollPane, event, mode)
+          else -> null
         }
-
-        if (scrollPane != null) {
-          handler = ScrollPaneHandler(scrollPane, event, mode).start()
-          return true
+        if (newHandler != null) {
+          installHandler(newHandler)
         }
+        return true
       }
       if (event.id == MouseEvent.MOUSE_RELEASED) {
         disposeHandler(300)
@@ -99,6 +101,18 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     return false
+  }
+
+  private fun installHandler(newHandler: Handler) {
+    handler = newHandler
+    Disposer.register(newHandler, UiNotifyConnector(newHandler.component, object : Activatable.Adapter() {
+      override fun hideNotify() {
+        if (handler == newHandler) {
+          disposeHandler()
+        }
+      }
+    }))
+    handler!!.start()
   }
 
   private fun disposeHandler(minDelay: Int = 0): Boolean {
