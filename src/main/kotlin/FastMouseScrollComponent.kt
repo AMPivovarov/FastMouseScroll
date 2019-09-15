@@ -99,8 +99,10 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     if (event is MouseEvent && (event.id == MouseEvent.MOUSE_MOVED || event.id == MouseEvent.MOUSE_DRAGGED)) {
-      handler?.mouseMoved(event)
-      return false
+      handler?.let { handler ->
+        handler.mouseMoved(event)
+        return event.id == MouseEvent.MOUSE_DRAGGED
+      }
     }
 
     return false
@@ -115,7 +117,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
         }
       }
     }))
-    handler!!.start()
+    newHandler.start()
   }
 
   private fun disposeHandler(minDelay: Int = 0): Boolean {
