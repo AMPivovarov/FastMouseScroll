@@ -116,7 +116,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
 
   private fun installHandler(newHandler: Handler) {
     handler = newHandler
-    Disposer.register(newHandler, UiNotifyConnector(newHandler.component, object : Activatable.Adapter() {
+    Disposer.register(newHandler, UiNotifyConnector.Once(newHandler.component, object : Activatable.Adapter() {
       override fun hideNotify() {
         if (handler == newHandler) {
           disposeHandler()
