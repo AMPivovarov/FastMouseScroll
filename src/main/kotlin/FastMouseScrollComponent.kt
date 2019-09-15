@@ -16,6 +16,7 @@ import com.intellij.util.ui.update.UiNotifyConnector
 import java.awt.AWTEvent
 import java.awt.Cursor
 import java.awt.Point
+import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
@@ -40,6 +41,7 @@ private fun isToggleMouseButton(event: AWTEvent): Boolean {
          !(event.isControlDown || event.isShiftDown || event.isMetaDown)
 }
 
+@ExperimentalContracts
 class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
   companion object {
     private const val DELAY_MS: Int = 30
@@ -51,8 +53,9 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     IdeEventQueue.getInstance().addDispatcher(this, ApplicationManager.getApplication())
   }
 
-  @ExperimentalContracts
   override fun dispatch(event: AWTEvent): Boolean {
+    if (event !is InputEvent || event.isConsumed) return false
+
     val mode = FMSSettings.instance.scrollMode
     if (mode == ScrollMode.NONE) {
       return false
