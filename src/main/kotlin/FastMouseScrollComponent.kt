@@ -69,7 +69,8 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
       if (handler == null && editor == null && scrollPane == null) return false
 
       if (event.id == MouseEvent.MOUSE_PRESSED) {
-        if (disposeHandler()) {
+        handler?.let { handler ->
+          Disposer.dispose(handler)
           return true
         }
 
@@ -84,7 +85,12 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
         return true
       }
       if (event.id == MouseEvent.MOUSE_RELEASED) {
-        disposeHandler(300)
+        handler?.let { handler ->
+          if (handler.isDisposed ||
+              (System.currentTimeMillis() - handler.startTimestamp) > 300) {
+            disposeHandler()
+          }
+        }
         return true
       }
       return true // suppress shortcuts
@@ -120,9 +126,8 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     newHandler.start()
   }
 
-  private fun disposeHandler(minDelay: Int = 0): Boolean {
+  private fun disposeHandler(): Boolean {
     if (handler == null) return false
-    if (System.currentTimeMillis() - handler!!.startTimestamp < minDelay) return false
     Disposer.dispose(handler!!)
     handler = null
     return true
@@ -171,6 +176,9 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     private var deltaY: DeltaState = DeltaState()
     private var lastEventTimestamp: Long = Long.MAX_VALUE
 
+    var isDisposed = false
+      private set
+
     fun start(): Handler {
       setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
       scheduleScrollEvent()
@@ -178,11 +186,13 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     override fun dispose() {
+      isDisposed = true
       setCursor(null)
       Disposer.dispose(alarm)
     }
 
     fun mouseMoved(event: MouseEvent) {
+      if (isDisposed) return
       val currentPoint = RelativePoint(event).getPoint(component)
 
       deltaX.currentSpeed = calcSpeed(currentPoint.x - startPoint.x, mode.horizontal)
@@ -204,6 +214,8 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     private fun doScroll() {
+      if (isDisposed) return
+
       if (deltaX.isActive || deltaY.isActive) {
         val timestamp = System.currentTimeMillis()
         val timeDelta = (timestamp - lastEventTimestamp).coerceAtLeast(0)
