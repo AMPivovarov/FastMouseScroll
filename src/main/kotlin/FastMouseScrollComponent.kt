@@ -21,7 +21,6 @@ import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import javax.swing.JComponent
 import javax.swing.JScrollPane
-import javax.swing.SwingUtilities
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.math.roundToInt
@@ -62,7 +61,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     if (isToggleMouseButton(event)) {
-      val component = SwingUtilities.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
+      val component = UIUtil.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
       val editor = DataManager.getInstance().getDataContext(component).getData(CommonDataKeys.EDITOR) as? EditorEx
       val scrollPane = UIUtil.getParentOfType(JScrollPane::class.java, component)
 
