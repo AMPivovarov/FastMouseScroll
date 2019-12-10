@@ -4,7 +4,7 @@
     <vendor email="Aleksey.Pivovarov@jetbrains.com" url="https://www.jetbrains.com/">JetBrains</vendor>
 
     <description><![CDATA[
-    Supports browser-like scrolling with middle-click in IDE.
+    Supports browser-like <a href="https://youtrack.jetbrains.com/issue/IDEA-89036">scrolling with middle-click</a> in IDE.
     ]]></description>
 
     <change-notes><![CDATA[
