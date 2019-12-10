@@ -154,8 +154,8 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
       val hBar = scrollPane.horizontalScrollBar
       val vBar = scrollPane.verticalScrollBar
 
-      if (hBar.isVisible) hBar.value = hBar.value + deltaX
-      if (vBar.isVisible) vBar.value = vBar.value + deltaY
+      if (hBar != null && hBar.isVisible) hBar.value = hBar.value + deltaX
+      if (vBar != null && vBar.isVisible) vBar.value = vBar.value + deltaY
     }
 
     @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
