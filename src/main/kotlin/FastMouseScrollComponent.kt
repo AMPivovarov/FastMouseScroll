@@ -42,10 +42,6 @@ private fun isToggleMouseButton(event: AWTEvent): Boolean {
 
 @ExperimentalContracts
 class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
-  companion object {
-    private const val DELAY_MS: Int = 30
-  }
-
   private var handler: Handler? = null
 
   init {
@@ -165,6 +161,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
   }
 
   private abstract inner class Handler(val component: JComponent, startEvent: MouseEvent, val mode: ScrollMode) : Disposable {
+    private val delayMs = FMSSettings.instance.delayMs
     private val scrollSpeedAlg: ScrollSpeedAlg = GeckoScrollSpeedAlg
 
     val startTimestamp: Long = System.currentTimeMillis()
@@ -229,7 +226,7 @@ class FastMouseScrollComponent : IdeEventQueue.EventDispatcher {
     }
 
     private fun scheduleScrollEvent() {
-      alarm.addRequest(this@Handler::doScroll, DELAY_MS)
+      alarm.addRequest(this@Handler::doScroll, delayMs)
     }
 
     private fun calcSpeed(delta: Int, isEnabled: Boolean): Double {
