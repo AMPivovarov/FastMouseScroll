@@ -8,6 +8,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        1.5.4: Adjust default settings for smoother scrolling<br/>
         1.5.3: Fix rare NPE<br/>
         1.5.2: Enable scrolling in Settings dialog<br/>
         1.5: Fix conflicts with Editor's "Drag-to-select" actions<br/>
