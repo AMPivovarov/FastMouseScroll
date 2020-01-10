@@ -8,6 +8,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        1.5.5: Support plugin loading/unloading on-the-fly<br/>
         1.5.4: Adjust default settings for smoother scrolling<br/>
         1.5.3: Fix rare NPE<br/>
         1.5.2: Enable scrolling in Settings dialog<br/>
