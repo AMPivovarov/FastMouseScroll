@@ -12,7 +12,11 @@ version = "1.5.4"
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-  version = "IC-2019.1"
+  version = "IC-2019.3"
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+  kotlinOptions.jvmTarget = "1.8"
 }
 
 tasks {

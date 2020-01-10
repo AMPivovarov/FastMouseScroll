@@ -17,13 +17,12 @@
 
     <depends>com.intellij.modules.lang</depends>
 
-    <idea-version since-build="191.4212.41"/>
+    <idea-version since-build="193.5233.12"/>
 
-    <application-components>
-        <component>
-            <implementation-class>com.jetbrains.fastmousescroll.FastMouseScrollComponent</implementation-class>
-        </component>
-    </application-components>
+    <applicationListeners>
+        <listener class="com.jetbrains.fastmousescroll.FastMouseScrollStarter" topic="com.intellij.ide.AppLifecycleListener" activeInHeadlessMode="false"/>
+        <listener class="com.jetbrains.fastmousescroll.FastMouseScrollStarter" topic="com.intellij.ide.plugins.DynamicPluginListener" activeInHeadlessMode="false"/>
+    </applicationListeners>
 
     <extensions defaultExtensionNs="com.intellij">
         <editorAppearanceConfigurable instance="com.jetbrains.fastmousescroll.FMSConfigurable"/>

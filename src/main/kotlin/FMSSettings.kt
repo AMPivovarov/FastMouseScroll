@@ -35,7 +35,7 @@ class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
     copyFrom(state)
   }
 
-  var scrollMode by property(ScrollMode.VERTICAL)
+  var scrollMode by enum(ScrollMode.VERTICAL)
   var delayMs by property(10)
 }
 
