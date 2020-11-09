@@ -8,8 +8,10 @@ import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.MouseShortcut
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.awt.RelativePoint
@@ -39,9 +41,9 @@ private fun isEscapeKey(event: AWTEvent): Boolean {
 @ExperimentalContracts
 private fun isToggleMouseButton(event: AWTEvent): Boolean {
   contract { returns(true) implies (event is MouseEvent) }
-  return event is MouseEvent &&
-         event.button == MouseEvent.BUTTON2 &&
-         !(event.isControlDown || event.isShiftDown || event.isMetaDown)
+  if (event !is MouseEvent) return false
+  val shortcuts = KeymapManager.getInstance().activeKeymap.getShortcuts("FastMouseScroll.Toggle").filterIsInstance<MouseShortcut>()
+  return shortcuts.contains(MouseShortcut(event.button, event.modifiersEx, 1))
 }
 
 @ExperimentalContracts

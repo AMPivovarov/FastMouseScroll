@@ -29,4 +29,11 @@
         <editorAppearanceConfigurable instance="com.jetbrains.fastmousescroll.FMSConfigurable"/>
         <applicationService serviceImplementation="com.jetbrains.fastmousescroll.FMSSettings"/>
     </extensions>
+
+    <actions>
+        <action id="FastMouseScroll.Toggle" class="com.intellij.openapi.actionSystem.EmptyAction"
+                text="Start Fast Mouse Scrolling">
+            <mouse-shortcut keymap="$default" keystroke="button2"/>
+        </action>
+    </actions>
 </idea-plugin>
