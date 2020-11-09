@@ -87,6 +87,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     val settings = ServiceManager.getService(FMSSettings::class.java) as? FMSSettings ?: return false
 
     val mode = settings.scrollMode
+    val enableToggle = settings.enableClickToDragToggle
     if (mode == ScrollMode.NONE) {
       return false
     }
@@ -112,16 +113,18 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         if (newHandler != null) {
           installHandler(newHandler)
         }
-        return true
+        return enableToggle
       }
       if (event.id == MouseEvent.MOUSE_RELEASED) {
+        val wasMoved = handler?.wasMoved == true
         handler?.let { handler ->
           if (handler.isDisposed ||
-              (System.currentTimeMillis() - handler.startTimestamp) > 300) {
+              (System.currentTimeMillis() - handler.startTimestamp) > 300 ||
+              !enableToggle) {
             disposeHandler()
           }
         }
-        return true
+        return enableToggle || wasMoved
       }
       return true // suppress shortcuts
     }
@@ -228,6 +231,9 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     private val startPoint: Point = RelativePoint(startEvent).getPoint(component)
     private val alarm = Alarm()
 
+    var wasMoved: Boolean = false
+      private set
+
     private var deltaX: DeltaState = DeltaState()
     private var deltaY: DeltaState = DeltaState()
     private var lastEventTimestamp: Long = Long.MAX_VALUE
@@ -266,6 +272,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         deltaY.lastEventRemainder = 0.0
       }
 
+      if (deltaX.currentSpeed != 0.0 || deltaY.currentSpeed != 0.0) wasMoved = true
       setCursor(getCursor(deltaX.currentSpeed, deltaY.currentSpeed))
     }
 

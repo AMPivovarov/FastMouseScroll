@@ -9,10 +9,7 @@ import com.intellij.ui.EnumComboBoxModel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.util.ui.JBUI
 import java.awt.FlowLayout
-import javax.swing.Box
-import javax.swing.JComponent
-import javax.swing.JLabel
-import javax.swing.JPanel
+import javax.swing.*
 
 enum class ScrollMode(private val visibleName: String,
                       val horizontal: Boolean,
@@ -36,19 +33,23 @@ class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
   }
 
   var scrollMode by enum(ScrollMode.VERTICAL)
+  var enableClickToDragToggle by property(true)
   var delayMs by property(10)
 }
 
 class FMSConfigurable : UnnamedConfigurable {
   private val panel: JPanel = JPanel()
   private val scrollModeCombobox = ComboBox<ScrollMode>(EnumComboBoxModel(ScrollMode::class.java))
+  private val enableToggleMode = JCheckBox("Enable click-to-scroll toggle mode")
   private val delayMsSpinner = JBIntSpinner(10, 5, 200)
 
   init {
     panel.layout = FlowLayout(FlowLayout.LEFT, JBUI.scale(5), 0)
     panel.add(JLabel("Fast mouse scrolling:"))
     panel.add(scrollModeCombobox)
-    panel.add(Box.createHorizontalStrut(JBUI.scale(10)))
+    panel.add(Box.createHorizontalStrut(JBUI.scale(8)))
+    panel.add(enableToggleMode)
+    panel.add(Box.createHorizontalStrut(JBUI.scale(8)))
     panel.add(JLabel("Refresh delay, ms:"))
     panel.add(delayMsSpinner)
   }
@@ -57,16 +58,19 @@ class FMSConfigurable : UnnamedConfigurable {
 
   override fun isModified(): Boolean = with(FMSSettings.instance) {
     scrollMode != scrollModeCombobox.selectedItem ||
+    enableClickToDragToggle != enableToggleMode.isSelected ||
     delayMs != delayMsSpinner.number
   }
 
   override fun reset() = with(FMSSettings.instance) {
     scrollModeCombobox.selectedItem = scrollMode
+    enableToggleMode.isSelected = enableClickToDragToggle
     delayMsSpinner.number = delayMs
   }
 
   override fun apply() = with(FMSSettings.instance) {
     scrollMode = scrollModeCombobox.selectedItem as ScrollMode
+    enableClickToDragToggle = enableToggleMode.isSelected
     delayMs = delayMsSpinner.number
   }
 }
