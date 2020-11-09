@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Alarm
@@ -83,6 +84,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
   override fun dispatch(event: AWTEvent): Boolean {
     if (event !is InputEvent || event.isConsumed) return false
 
+    val dragOnly = Registry.`is`("fast.mouse.scroll.drag.only")
+
     // can be 'null' or FMSSettings from a different classloader in some cases (IDE bug?)
     @Suppress("USELESS_CAST")
     val settings = ServiceManager.getService(FMSSettings::class.java) as? FMSSettings ?: return false
@@ -113,16 +116,17 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         if (newHandler != null) {
           installHandler(newHandler)
         }
-        return true
+        return !dragOnly
       }
       if (event.id == MouseEvent.MOUSE_RELEASED) {
         handler?.let { handler ->
           if (handler.isDisposed ||
-              (System.currentTimeMillis() - handler.startTimestamp) > 300) {
+              (System.currentTimeMillis() - handler.startTimestamp) > 300 ||
+              dragOnly) {
             disposeHandler()
           }
         }
-        return true
+        return !dragOnly || handler?.wasMoved == true
       }
       return true // suppress shortcuts
     }
@@ -220,6 +224,9 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     private val startPoint: Point = RelativePoint(startEvent).getPoint(component)
     private val alarm = Alarm()
 
+    var wasMoved: Boolean = false
+      private set
+
     private var deltaX: DeltaState = DeltaState()
     private var deltaY: DeltaState = DeltaState()
     private var lastEventTimestamp: Long = Long.MAX_VALUE
@@ -258,6 +265,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         deltaY.lastEventRemainder = 0.0
       }
 
+      if (deltaX.currentSpeed != 0.0 && deltaY.currentSpeed != 0.0) wasMoved = true
       setCursor(getCursor(deltaX.currentSpeed, deltaY.currentSpeed))
     }
 
