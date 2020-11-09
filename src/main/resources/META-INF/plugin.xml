@@ -4,7 +4,10 @@
     <vendor email="Aleksey.Pivovarov@jetbrains.com" url="https://www.jetbrains.com/">JetBrains</vendor>
 
     <description><![CDATA[
-    Supports browser-like <a href="https://youtrack.jetbrains.com/issue/IDEA-89036">scrolling with middle-click</a> in IDE.
+    Supports browser-like <a href="https://youtrack.jetbrains.com/issue/IDEA-89036">scrolling with middle-click</a> in IDE.<br/>
+    <br/>
+    Horizontal scrolling can be enabled in 'Settings | Editor | General | Appearance'.<br/>
+    Mouse shortcut can be customized in 'File | Settings | Keymap | Plugins | Fast Mouse Scrolling | Start Fast Mouse Scrolling'.
     ]]></description>
 
     <change-notes><![CDATA[
