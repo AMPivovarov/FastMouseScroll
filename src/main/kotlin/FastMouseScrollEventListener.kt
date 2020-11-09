@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.ui.ComponentUtil
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.UIUtil
@@ -22,9 +23,7 @@ import com.intellij.util.ui.update.UiNotifyConnector
 import java.awt.AWTEvent
 import java.awt.Cursor
 import java.awt.Point
-import java.awt.event.InputEvent
-import java.awt.event.KeyEvent
-import java.awt.event.MouseEvent
+import java.awt.event.*
 import javax.swing.JComponent
 import javax.swing.JScrollPane
 import kotlin.contracts.ExperimentalContracts
@@ -147,7 +146,6 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
   }
 
   private fun installHandler(newHandler: Handler) {
-    handler = newHandler
     Disposer.register(newHandler, UiNotifyConnector.Once(newHandler.component, object : Activatable.Adapter() {
       override fun hideNotify() {
         if (handler == newHandler) {
@@ -155,6 +153,23 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         }
       }
     }))
+
+    val window = ComponentUtil.getWindow(newHandler.component)
+    if (window != null) {
+      val listener = object : WindowFocusListener {
+        override fun windowGainedFocus(e: WindowEvent?) = Unit
+
+        override fun windowLostFocus(e: WindowEvent?) {
+          if (handler == newHandler) {
+            disposeHandler()
+          }
+        }
+      }
+      window.addWindowFocusListener(listener)
+      Disposer.register(newHandler, Disposable { window.removeWindowFocusListener(listener) })
+    }
+
+    handler = newHandler
     newHandler.start()
   }
 
