@@ -2,15 +2,14 @@
 package com.jetbrains.fastmousescroll
 
 import com.intellij.ide.AppLifecycleListener
-import com.intellij.ide.DataManager
 import com.intellij.ide.IdeEventQueue
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.MouseShortcut
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.ex.EditorEx
+import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
@@ -94,8 +93,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
 
     if (isToggleMouseButton(event)) {
       val component = UIUtil.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
-      val editor = DataManager.getInstance().getDataContext(component).getData(CommonDataKeys.EDITOR) as? EditorEx
-      val scrollPane = UIUtil.getParentOfType(JScrollPane::class.java, component)
+      val editor = findEditor(component)
+      val scrollPane = findScrollPane(component)
 
       if (handler == null && editor == null && scrollPane == null) return false
 
@@ -143,6 +142,15 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     }
 
     return false
+  }
+
+  private fun findEditor(component: JComponent?): EditorEx? {
+    val editorComponent = UIUtil.getParentOfType(EditorComponentImpl::class.java, component) ?: return null
+    return editorComponent.editor
+  }
+
+  private fun findScrollPane(component: JComponent?): JScrollPane? {
+    return UIUtil.getParentOfType(JScrollPane::class.java, component)
   }
 
   private fun installHandler(newHandler: Handler) {
