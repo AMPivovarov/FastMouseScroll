@@ -14,7 +14,7 @@
         1.5.7: Fix scrolling in database table editors
    ]]></change-notes>
 
-    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.platform</depends>
 
     <idea-version since-build="193.5233.12"/>
 
