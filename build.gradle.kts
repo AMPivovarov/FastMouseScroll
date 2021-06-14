@@ -8,7 +8,7 @@ repositories {
 }
 
 group = "com.jetbrains"
-version = "1.5.7"
+version = "1.5.8"
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {

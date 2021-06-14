@@ -6,12 +6,13 @@
     <description><![CDATA[
     Supports browser-like <a href="https://youtrack.jetbrains.com/issue/IDEA-89036">scrolling with middle-click</a> in IDE.<br/>
     <br/>
-    Horizontal scrolling can be enabled in 'Settings | Editor | General | Appearance'.<br/>
+    Horizontal scrolling can be enabled in 'File | Settings | Editor | General | Appearance'.<br/>
+    Click-to-scroll toggle mode can be disabled in 'File | Settings | Editor | General | Appearance'.<br/>
     Mouse shortcut can be customized in 'File | Settings | Keymap | Plugins | Fast Mouse Scrolling | Start Fast Mouse Scrolling'.
     ]]></description>
 
     <change-notes><![CDATA[
-        1.5.7: Fix scrolling in database table editors
+        1.5.8: Allow to disable click-to-scroll toggle mode
    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
