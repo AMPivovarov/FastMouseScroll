@@ -69,7 +69,7 @@ class FMSConfigurable : UnnamedConfigurable {
   }
 
   override fun apply() = with(FMSSettings.instance) {
-    scrollMode = scrollModeCombobox.selectedItem as ScrollMode
+    scrollMode = scrollModeCombobox.selectedItem as ScrollMode // do not use 'item' - incompatible with 201 and earlier builds
     enableClickToDragToggle = enableToggleMode.isSelected
     delayMs = delayMsSpinner.number
   }

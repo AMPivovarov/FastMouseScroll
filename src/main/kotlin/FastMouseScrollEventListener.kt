@@ -157,6 +157,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
   }
 
   private fun installHandler(newHandler: Handler) {
+    @Suppress("DEPRECATION")
     Disposer.register(newHandler, UiNotifyConnector.Once(newHandler.component, object : Activatable.Adapter() {
       override fun hideNotify() {
         if (handler == newHandler) {
