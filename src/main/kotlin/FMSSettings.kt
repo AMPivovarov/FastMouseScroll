@@ -2,6 +2,7 @@
 
 package com.jetbrains.fastmousescroll
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
 import com.intellij.openapi.options.UnnamedConfigurable
 import com.intellij.openapi.ui.ComboBox
@@ -21,10 +22,11 @@ enum class ScrollMode(private val visibleName: String,
   override fun toString(): String = visibleName
 }
 
+@Service(Service.Level.APP)
 @State(name = "FastMouseScrollSettings", storages = [Storage("other.xml")])
 class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
   companion object {
-    val instance: FMSSettings get() = ServiceManager.getService(FMSSettings::class.java)
+    val instance: FMSSettings get() = ApplicationManager.getApplication().getService(FMSSettings::class.java)
   }
 
   override fun getState(): FMSSettings = this

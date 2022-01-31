@@ -1,17 +1,13 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.jetbrains.fastmousescroll
 
-import com.intellij.ide.AppLifecycleListener
 import com.intellij.ide.IdeEventQueue
-import com.intellij.ide.plugins.DynamicPluginListener
-import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.MouseShortcut
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.keymap.KeymapManager
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ComponentUtil
 import com.intellij.ui.awt.RelativePoint
@@ -42,37 +38,6 @@ private fun isToggleMouseButton(event: AWTEvent): Boolean {
   if (event !is MouseEvent) return false
   val shortcuts = KeymapManager.getInstance().activeKeymap.getShortcuts("FastMouseScroll.Toggle").filterIsInstance<MouseShortcut>()
   return shortcuts.contains(MouseShortcut(event.button, event.modifiersEx, 1))
-}
-
-@ExperimentalContracts
-class FastMouseScrollStarter : AppLifecycleListener, DynamicPluginListener {
-  companion object {
-    private const val ourPluginId = "com.jetbrains.fast.mouse.scroll"
-  }
-
-  private var disposable: Disposable? = null
-
-  private fun startListen() {
-    if (disposable != null) return
-    disposable = Disposer.newDisposable()
-    IdeEventQueue.getInstance().addDispatcher(FastMouseScrollEventListener(), disposable)
-  }
-
-  private fun stopListen() {
-    disposable?.let { Disposer.dispose(it) }
-    disposable = null
-  }
-
-  override fun appStarting(project: Project?) = startListen()
-  override fun appClosing() = stopListen()
-
-  override fun pluginLoaded(pluginDescriptor: IdeaPluginDescriptor) {
-    if (pluginDescriptor.pluginId.idString == ourPluginId) startListen()
-  }
-
-  override fun beforePluginUnload(pluginDescriptor: IdeaPluginDescriptor, isUpdate: Boolean) {
-    if (pluginDescriptor.pluginId.idString == ourPluginId) stopListen()
-  }
 }
 
 @ExperimentalContracts
@@ -178,7 +143,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
         }
       }
       window.addWindowFocusListener(listener)
-      Disposer.register(newHandler, Disposable { window.removeWindowFocusListener(listener) })
+      Disposer.register(newHandler) { window.removeWindowFocusListener(listener) }
     }
 
     handler = newHandler
