@@ -4,13 +4,14 @@ package com.jetbrains.fastmousescroll
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.*
-import com.intellij.openapi.options.UnnamedConfigurable
+import com.intellij.openapi.options.UiDslUnnamedConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EnumComboBoxModel
-import com.intellij.ui.JBIntSpinner
-import com.intellij.util.ui.JBUI
-import java.awt.FlowLayout
-import javax.swing.*
+import com.intellij.ui.dsl.builder.Panel
+import com.intellij.ui.dsl.builder.bindIntValue
+import com.intellij.ui.dsl.builder.bindItem
+import com.intellij.ui.dsl.builder.bindSelected
+import com.intellij.ui.layout.*
 
 enum class ScrollMode(private val visibleName: String,
                       val horizontal: Boolean,
@@ -39,40 +40,27 @@ class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
   var delayMs by property(10)
 }
 
-class FMSConfigurable : UnnamedConfigurable {
-  private val panel: JPanel = JPanel()
-  private val scrollModeCombobox = ComboBox<ScrollMode>(EnumComboBoxModel(ScrollMode::class.java))
-  private val enableToggleMode = JCheckBox("Enable click-to-scroll toggle mode")
-  private val delayMsSpinner = JBIntSpinner(10, 5, 200)
+class FMSConfigurable : UiDslUnnamedConfigurable.Simple() {
+  override fun Panel.createContent() {
+    val settings = FMSSettings.instance
 
-  init {
-    panel.layout = FlowLayout(FlowLayout.LEFT, JBUI.scale(5), 0)
-    panel.add(JLabel("Fast mouse scrolling:"))
-    panel.add(scrollModeCombobox)
-    panel.add(Box.createHorizontalStrut(JBUI.scale(8)))
-    panel.add(enableToggleMode)
-    panel.add(Box.createHorizontalStrut(JBUI.scale(8)))
-    panel.add(JLabel("Refresh delay, ms:"))
-    panel.add(delayMsSpinner)
-  }
+    lateinit var comboBox: ComboBox<ScrollMode>
+    row("Fast mouse scrolling:") {
+      comboBox = comboBox(EnumComboBoxModel(ScrollMode::class.java))
+        .bindItem({ settings.scrollMode }, { settings.scrollMode = it ?: ScrollMode.VERTICAL })
+        .component
+    }
 
-  override fun createComponent(): JComponent = panel
-
-  override fun isModified(): Boolean = with(FMSSettings.instance) {
-    scrollMode != scrollModeCombobox.selectedItem ||
-    enableClickToDragToggle != enableToggleMode.isSelected ||
-    delayMs != delayMsSpinner.number
-  }
-
-  override fun reset() = with(FMSSettings.instance) {
-    scrollModeCombobox.selectedItem = scrollMode
-    enableToggleMode.isSelected = enableClickToDragToggle
-    delayMsSpinner.number = delayMs
-  }
-
-  override fun apply() = with(FMSSettings.instance) {
-    scrollMode = scrollModeCombobox.selectedItem as ScrollMode // do not use 'item' - incompatible with 201 and earlier builds
-    enableClickToDragToggle = enableToggleMode.isSelected
-    delayMs = delayMsSpinner.number
+    indent {
+      row {
+        checkBox("Enable click-to-scroll toggle mode")
+          .bindSelected(settings::enableClickToDragToggle)
+      }
+      row {
+        label("Refresh delay, ms:")
+        spinner(1..500, 10)
+          .bindIntValue(settings::delayMs)
+      }
+    }.enabledIf(comboBox.selectedValueIs(ScrollMode.NONE).not())
   }
 }

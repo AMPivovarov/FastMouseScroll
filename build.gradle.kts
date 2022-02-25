@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
   kotlin("jvm") version "1.5.10"
   id("org.jetbrains.intellij") version "1.4.0"
@@ -18,7 +20,7 @@ intellij {
   updateSinceUntilBuild.set(false)
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+tasks.withType<KotlinCompile> {
   kotlinOptions.jvmTarget = JavaVersion.VERSION_11.toString()
   kotlinOptions.freeCompilerArgs = listOf("-Xjvm-default=enable")
 }
