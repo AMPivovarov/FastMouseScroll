@@ -4,7 +4,7 @@ package com.jetbrains.fastmousescroll
 import com.intellij.ide.IdeEventQueue
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.MouseShortcut
-import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.keymap.KeymapManager
@@ -49,7 +49,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
 
     // can be 'null' or FMSSettings from a different classloader in some cases (IDE bug?)
     @Suppress("USELESS_CAST")
-    val settings = ServiceManager.getService(FMSSettings::class.java) as? FMSSettings ?: return false
+    val settings = ApplicationManager.getApplication().getService(FMSSettings::class.java) as? FMSSettings ?: return false
 
     val mode = settings.scrollMode
     val enableToggle = settings.enableClickToDragToggle
