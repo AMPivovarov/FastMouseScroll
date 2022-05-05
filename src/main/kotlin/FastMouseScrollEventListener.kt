@@ -57,6 +57,14 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
       return false
     }
 
+    // NB: On macOS event reports all buttons/modifiers pressed and `isToggleMouseButton(event) == true`
+    if (event is MouseEvent && (event.id == MouseEvent.MOUSE_MOVED || event.id == MouseEvent.MOUSE_DRAGGED)) {
+      handler?.let { handler ->
+        handler.mouseMoved(event)
+        return event.id == MouseEvent.MOUSE_DRAGGED
+      }
+    }
+
     if (isToggleMouseButton(event)) {
       val component = UIUtil.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
       val editor = findEditor(component)
@@ -100,13 +108,6 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
 
     if (event is MouseEvent && event.id == MouseEvent.MOUSE_PRESSED) {
       return disposeHandler()
-    }
-
-    if (event is MouseEvent && (event.id == MouseEvent.MOUSE_MOVED || event.id == MouseEvent.MOUSE_DRAGGED)) {
-      handler?.let { handler ->
-        handler.mouseMoved(event)
-        return event.id == MouseEvent.MOUSE_DRAGGED
-      }
     }
 
     return false
