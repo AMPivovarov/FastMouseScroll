@@ -12,7 +12,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-        1.5.9: Fix compatibility with 2022.1 builds
+        1.6.0: Fix macOS
    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
