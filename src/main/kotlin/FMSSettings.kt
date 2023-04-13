@@ -24,7 +24,15 @@ enum class ScrollMode(private val visibleName: String,
 }
 
 @Service(Service.Level.APP)
-@State(name = "FastMouseScrollSettings", storages = [Storage("other.xml")])
+@State(
+  name = "FastMouseScrollSettings",
+  presentableName = FMSSettings.PresentableNameGetter::class,
+  category = SettingsCategory.UI,
+  storages = [
+    Storage("fast.mouse.scroll.xml"),
+    Storage("other.xml", deprecated = true)
+  ],
+)
 class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
   companion object {
     val instance: FMSSettings get() = ApplicationManager.getApplication().getService(FMSSettings::class.java)
@@ -38,6 +46,12 @@ class FMSSettings : BaseState(), PersistentStateComponent<FMSSettings> {
   var scrollMode by enum(ScrollMode.VERTICAL)
   var enableClickToDragToggle by property(true)
   var delayMs by property(10)
+
+  class PresentableNameGetter : State.NameGetter() {
+    override fun get(): String {
+      return "Fast Mouse Scrolling"
+    }
+  }
 }
 
 class FMSConfigurable : UiDslUnnamedConfigurable.Simple() {

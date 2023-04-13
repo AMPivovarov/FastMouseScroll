@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  kotlin("jvm") version "1.5.10"
-  id("org.jetbrains.intellij") version "1.4.0"
+  kotlin("jvm") version "1.8.0"
+  id("org.jetbrains.intellij") version "1.13.3"
 }
 
 repositories {
@@ -16,7 +16,7 @@ version = "1.6.0"
 // https://www.jetbrains.com/intellij-repository/snapshots/
 // Ex: "IC-2021.1", "IC-221.4501-EAP-CANDIDATE-SNAPSHOT"
 intellij {
-  version.set("IC-221.4842-EAP-CANDIDATE-SNAPSHOT")
+  version.set("IC-221.5080.210")
   updateSinceUntilBuild.set(false)
 }
 
