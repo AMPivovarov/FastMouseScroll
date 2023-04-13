@@ -12,6 +12,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        1.6.1: Support sharing plugin settings via 'Settings Sync'<br/>
         1.6.0: Fix macOS
    ]]></change-notes>
 
