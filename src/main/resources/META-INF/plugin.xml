@@ -32,5 +32,10 @@
                 text="Start Fast Mouse Scrolling">
             <mouse-shortcut keymap="$default" keystroke="button2"/>
         </action>
+
+        <action id="FastMouseScroll.Panning" class="com.intellij.openapi.actionSystem.EmptyAction"
+                text="Start Fast Mouse Panning" description="ImageViewer/MapViewer-like drag-to-scroll mode">
+            <mouse-shortcut keymap="$default" keystroke="ctrl button2"/>
+        </action>
     </actions>
 </idea-plugin>

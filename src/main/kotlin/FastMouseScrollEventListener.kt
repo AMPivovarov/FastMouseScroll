@@ -35,8 +35,20 @@ private fun isEscapeKey(event: AWTEvent): Boolean {
 @ExperimentalContracts
 private fun isToggleMouseButton(event: AWTEvent): Boolean {
   contract { returns(true) implies (event is MouseEvent) }
+  return isActionMouseButton(event, "FastMouseScroll.Toggle")
+}
+
+@ExperimentalContracts
+private fun isPanningMouseButton(event: AWTEvent): Boolean {
+  contract { returns(true) implies (event is MouseEvent) }
+  return isActionMouseButton(event, "FastMouseScroll.Panning")
+}
+
+@ExperimentalContracts
+private fun isActionMouseButton(event: AWTEvent, actionId: String): Boolean {
+  contract { returns(true) implies (event is MouseEvent) }
   if (event !is MouseEvent) return false
-  val shortcuts = KeymapManager.getInstance().activeKeymap.getShortcuts("FastMouseScroll.Toggle").filterIsInstance<MouseShortcut>()
+  val shortcuts = KeymapManager.getInstance().activeKeymap.getShortcuts(actionId).filterIsInstance<MouseShortcut>()
   return shortcuts.contains(MouseShortcut(event.button, event.modifiersEx, 1))
 }
 
@@ -90,6 +102,31 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
           }
         }
         return enableToggle || wasMoved
+      }
+      return true // suppress shortcuts
+    }
+
+    if (isPanningMouseButton(event)) {
+      val scrollable = findScrollableFor(event)
+      if (handler == null && scrollable == null) return false
+
+      if (event.id == MouseEvent.MOUSE_PRESSED) {
+        handler?.let { handler ->
+          Disposer.dispose(handler)
+          return true
+        }
+
+        if (scrollable != null) {
+          installHandler(PanningHandler(scrollable, event))
+        }
+        return false
+      }
+      if (event.id == MouseEvent.MOUSE_RELEASED) {
+        val wasMoved = handler?.wasMoved == true
+        handler?.let { handler ->
+          disposeHandler()
+        }
+        return wasMoved
       }
       return true // suppress shortcuts
     }
@@ -271,6 +308,44 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     private fun calcSpeed(delta: Int, isEnabled: Boolean): Double {
       if (!isEnabled) return 0.0
       return scrollSpeedAlg(delta)
+    }
+  }
+
+  /**
+   * ImageEditor/MapViewer-like drag-to-scroll mode.
+   */
+  private inner class PanningHandler(val scrollable: ScrollableComponent,
+                                     startEvent: MouseEvent) : Handler {
+    override val component: JComponent get() = scrollable.component
+
+    override val startTimestamp: Long = System.currentTimeMillis()
+    override var wasMoved: Boolean = false
+
+    private var lastPoint: Point = RelativePoint(startEvent).getPoint(scrollable.component)
+
+    override var isDisposed = false
+
+    override fun start() {
+      scrollable.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
+    }
+
+    override fun dispose() {
+      isDisposed = true
+      scrollable.setCursor(null)
+    }
+
+    override fun mouseMoved(event: MouseEvent) {
+      if (isDisposed) return
+      val currentPoint = RelativePoint(event).getPoint(scrollable.component)
+
+      val deltaX = lastPoint.x - currentPoint.x
+      val deltaY = lastPoint.y - currentPoint.y
+      lastPoint = currentPoint
+
+      if (deltaX != 0 || deltaY != 0) {
+        wasMoved = true
+        scrollable.scrollComponent(deltaX, deltaY)
+      }
     }
   }
 }
