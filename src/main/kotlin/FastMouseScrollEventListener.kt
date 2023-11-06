@@ -66,11 +66,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     }
 
     if (isToggleMouseButton(event)) {
-      val component = UIUtil.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
-      val editor = findEditor(component)
-      val scrollPane = findScrollPane(component)
-
-      if (handler == null && editor == null && scrollPane == null) return false
+      val scrollable = findScrollableFor(event)
+      if (handler == null && scrollable == null) return false
 
       if (event.id == MouseEvent.MOUSE_PRESSED) {
         handler?.let { handler ->
@@ -78,13 +75,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
           return true
         }
 
-        val newHandler = when {
-          editor != null -> EditorHandler(editor, event, mode, enableToggle)
-          scrollPane != null -> ScrollPaneHandler(scrollPane, event, mode, enableToggle)
-          else -> null
-        }
-        if (newHandler != null) {
-          installHandler(newHandler)
+        if (scrollable != null) {
+          installHandler(ScrollHandler(scrollable, event, mode, enableToggle))
         }
         return enableToggle
       }
@@ -111,6 +103,17 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     }
 
     return false
+  }
+
+  private fun findScrollableFor(event: MouseEvent): ScrollableComponent? {
+    val component = UIUtil.getDeepestComponentAt(event.component, event.x, event.y) as? JComponent
+    val editor = findEditor(component)
+    if (editor != null) return EditorScrollable(editor)
+
+    val scrollPane = findScrollPane(component)
+    if (scrollPane != null) return ScrollPaneScrollable(scrollPane)
+
+    return null
   }
 
   private fun findEditor(component: JComponent?): EditorEx? {
@@ -158,8 +161,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     return true
   }
 
-  private inner class EditorHandler(val editor: EditorEx, startEvent: MouseEvent, mode: ScrollMode, enableToggle: Boolean)
-    : Handler(editor.component, startEvent, mode, enableToggle) {
+  private inner class EditorScrollable(val editor: EditorEx) : ScrollableComponent {
+    override val component: JComponent get() = editor.component
 
     override fun scrollComponent(deltaX: Int, deltaY: Int) {
       editor.scrollingModel.disableAnimation()
@@ -173,8 +176,8 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     }
   }
 
-  private inner class ScrollPaneHandler(val scrollPane: JScrollPane, startEvent: MouseEvent, mode: ScrollMode, enableToggle: Boolean)
-    : Handler(scrollPane, startEvent, mode, enableToggle) {
+  private inner class ScrollPaneScrollable(val scrollPane: JScrollPane) : ScrollableComponent {
+    override val component: JComponent get() = scrollPane
 
     override fun scrollComponent(deltaX: Int, deltaY: Int) {
       val hBar = scrollPane.horizontalScrollBar
@@ -190,42 +193,41 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
     }
   }
 
-  private abstract inner class Handler(val component: JComponent,
-                                       startEvent: MouseEvent,
-                                       val mode: ScrollMode,
-                                       val enableToggle: Boolean) : Disposable {
+  private inner class ScrollHandler(val scrollable: ScrollableComponent,
+                                    startEvent: MouseEvent,
+                                    val mode: ScrollMode,
+                                    val enableToggle: Boolean) : Handler {
+    override val component: JComponent get() = scrollable.component
+
     private val delayMs = FMSSettings.instance.delayMs
     private val scrollSpeedAlg: ScrollSpeedAlg = GeckoScrollSpeedAlg
 
-    val startTimestamp: Long = System.currentTimeMillis()
-    private val startPoint: Point = RelativePoint(startEvent).getPoint(component)
+    override val startTimestamp: Long = System.currentTimeMillis()
+    private val startPoint: Point = RelativePoint(startEvent).getPoint(scrollable.component)
     private val alarm = Alarm()
 
-    var wasMoved: Boolean = false
-      private set
+    override var wasMoved: Boolean = false
 
     private var deltaX: DeltaState = DeltaState()
     private var deltaY: DeltaState = DeltaState()
     private var lastEventTimestamp: Long = Long.MAX_VALUE
 
-    var isDisposed = false
-      private set
+    override var isDisposed = false
 
-    fun start(): Handler {
-      if (enableToggle) setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
+    override fun start() {
+      if (enableToggle) scrollable.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR))
       scheduleScrollEvent()
-      return this
     }
 
     override fun dispose() {
       isDisposed = true
-      setCursor(null)
+      scrollable.setCursor(null)
       Disposer.dispose(alarm)
     }
 
-    fun mouseMoved(event: MouseEvent) {
+    override fun mouseMoved(event: MouseEvent) {
       if (isDisposed) return
-      val currentPoint = RelativePoint(event).getPoint(component)
+      val currentPoint = RelativePoint(event).getPoint(scrollable.component)
 
       deltaX.currentSpeed = calcSpeed(currentPoint.x - startPoint.x, mode.horizontal)
       deltaY.currentSpeed = calcSpeed(currentPoint.y - startPoint.y, mode.vertical)
@@ -243,7 +245,7 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
       }
 
       if (deltaX.currentSpeed != 0.0 || deltaY.currentSpeed != 0.0) wasMoved = true
-      setCursor(getCursor(deltaX.currentSpeed, deltaY.currentSpeed, enableToggle || wasMoved))
+      scrollable.setCursor(getCursor(deltaX.currentSpeed, deltaY.currentSpeed, enableToggle || wasMoved))
     }
 
     private fun doScroll() {
@@ -256,24 +258,39 @@ class FastMouseScrollEventListener : IdeEventQueue.EventDispatcher {
 
         val stepX = deltaX.step(timeDelta)
         val stepY = deltaY.step(timeDelta)
-        scrollComponent(stepX, stepY)
+        scrollable.scrollComponent(stepX, stepY)
       }
 
       scheduleScrollEvent()
     }
 
     private fun scheduleScrollEvent() {
-      alarm.addRequest(this@Handler::doScroll, delayMs)
+      alarm.addRequest(this::doScroll, delayMs)
     }
 
     private fun calcSpeed(delta: Int, isEnabled: Boolean): Double {
       if (!isEnabled) return 0.0
       return scrollSpeedAlg(delta)
     }
-
-    protected abstract fun scrollComponent(deltaX: Int, deltaY: Int)
-    protected abstract fun setCursor(cursor: Cursor?)
   }
+}
+
+private interface Handler : Disposable {
+  val component: JComponent
+
+  val isDisposed: Boolean
+  val wasMoved: Boolean
+  val startTimestamp: Long
+
+  fun start()
+  fun mouseMoved(event: MouseEvent)
+}
+
+private interface ScrollableComponent {
+  val component: JComponent
+
+  fun scrollComponent(deltaX: Int, deltaY: Int)
+  fun setCursor(cursor: Cursor?)
 }
 
 private class DeltaState {
