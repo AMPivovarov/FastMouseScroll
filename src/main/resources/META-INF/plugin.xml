@@ -9,9 +9,12 @@
     Horizontal scrolling can be enabled in 'File | Settings | Editor | General | Appearance'.<br/>
     Click-to-scroll toggle mode can be disabled in 'File | Settings | Editor | General | Appearance'.<br/>
     Mouse shortcut can be customized in 'File | Settings | Keymap | Plugins | Fast Mouse Scrolling | Start Fast Mouse Scrolling'.
+
+    See also 'File | Settings | Keymap | Plugins | Fast Mouse Scrolling | Start Fast Mouse Panning', ImageViewer-like drag-to-scroll (Ctrl + Middle-Click + Drag)
     ]]></description>
 
     <change-notes><![CDATA[
+        1.7.0: Support 'Panning'<br/>
         1.6.1: Support sharing plugin settings via 'Settings Sync'<br/>
         1.6.0: Fix macOS
    ]]></change-notes>
